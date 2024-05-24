@@ -108,6 +108,64 @@ Dato che un realy non può essere scelto due volte nelllo stesso circuiti, deve 
 
 Si suppone che l'avversario possieda un guard ed un exit relay con uscita verso ogni indirizzo e porta. Entrambi hanno abbastanza banda da ottenere la flag ==fast== 
 
+L'allocazione della banda come rapporto tra relay guard su relay exit che massimizza la probabilità di compromettere una comunicazione è di 5:1.
+
+![[Schermata del 2024-05-24 14-29-41.png]]
+
+
+Allocare più banda per le guardie è giustificato dal fatto che per un avversario è più strategico ottenere una guardia dato che un utente la cambia molto meno frequentemente di quanto si usi una nuova exit.
+
+### Analisi
+I vari modelli di utente sono esposti a diversi problemi di sicurezza.
+
+Ad esempio inviare molti stream su TOR, implica un rate maggiore di creazione di circuiti; ciò aumenta le possibilità che venga scelto un relay malevolo.
+
+Una destinazione non raggiungibile da molti exit relays, invece aumenta la probabilità che venga scelto un exit relay malevolo.
+
+Fissato un avversario che controlla un guard relay con banda 83.3 MiB/s ed un exit relay con banda 16.7 MiB/s, i ricercatori hanno usato TorPS per simulare sui vari modelli utente.
+
+Per tutti i modelli, emerge che esiste una probabilità maggiore dell'80% di deanonimizzazione entro 6 mesi. Il tempo mediano è inferiore a 70 giorni. 
+
+![[Schermata del 2024-05-24 14-41-24.png]]
+
+
+Emerge anche che il tempo per scegliere una guardia malevola (50-60 giorni) è molto maggiore del tempo per scegliere una exit malevola (2.5 giorni)
+![[Schermata del 2024-05-24 14-43-27.png]]
+
+Questo implica che un avversario che prova la deanonimizzazione degli utenti avrà come priorità il far scegliere una guardia malevola.
+
+
+
+Il rate di compromissione completa (visto come prodotto tra rate di compromissione di guard ed exit) mediano è tra 0.25-1.5%.
+
+I rate di compromissione delle guard è pressocchè invariato per i vari utenti, dato che Ip:porta delle destinazioni non è considerato nella scelta iniziale.
+
+Le exit sono scelte indipendentemente per ogni circuito, per cui la distribuzione del rate di compromissione è una normale con media pari alla frazione di exit_bandwidth fornita. 
+
+### Valutazioni
+Il modello BitTorrent crea 2.5 volte gli streams creati dal Typical, ed oltre 50 volte rispetto ad IRC. Inoltre fra le 171 porte usate, diverse sono rifiutate dalla exit policy default di TOR. 
+
+Questo permette ad un avversario di fornire una percentuale di banda maggiore: ciò si riflette in un temo mediano di exit compromise di meno di 6 ore, e un rate mediano del 12%.
+
+Anche i modelli IRC e WorstPort soffrono di questo probelma dato che entrambi si connettono a porte poco "permesse".
+
+I modelli Typical e BestPort risultano i più sicuri: le porte 80 e 443 sono praticamente supportate da tutti gli exit relay.
+
+![[Schermata del 2024-05-24 15-06-25.png]]
+
+
+
+
+Un effetto notevole sul tempo per compromettere è dato anche dalla quantità totale di bandwidth fornita.
+
+Sperimentando con velocità tra 10-200 MiB/s emerge che raddoppiare la banda porta a dimezzare i tempi di compromissione. Con una velocità di 200 MiB/s, l'avversario compromette un utente entro 30 giorni con una probabilità del 50%.
+
+![[Schermata del 2024-05-24 15-10-23.png]]
+
+Per confronto si suppone che un avversario non controlli una guardia/exit fino al secondo mese di simulazione, quando l'utente ha già scelto e rotato le sue guardie.
+
+Nei restanti 4 mesi, l'avversario riesce a deanonimizzare l'utente nel 70% dei casi.
+Tale probabilità è simile a la probabilità di compromissione entro 4 mesi nel caso in cui controllasse i relay fin dall'inizio.
 
 # Network Attack
 
