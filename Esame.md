@@ -29,14 +29,17 @@ Tale avversario può aggiungere risorse di rete o corrompere quelle esistenti; n
 
 Le risorse che l'avversario possiede sono i relay o il server di destinazione => in senso più astratto l'avversario controlla una certa larghezza di banda già esistente o che può aggiungere alla rete TOR.
 
-### Adversary endowment
+### Resource endowment
 [IXP, AS ???]
+Un avversario è visto come l'insieme di risorse che controlla. Dato che il protocollo di selezione dei percorsi di TOR da un peso relativo alla bandwidth, questa è una misura accurata delle risorse avversarie. 
+
 
 ### Adversary goal
 L'obbiettivo principale (e più generale) dell'avversario è quello di deanonimizzare (collegare sorgente e destinazione) quanti più circuiti possibile. 
 
 È possibile che i goal siano più specifici come identificare le destinazioni di specifiche classi di utenti, o compromettere circuiti in modo da individuare chi si connette a specifiche destinazioni.
 
+Dei circa 3000 relay, 1/3 sono usati come guard relay mentre 1/3 sono usati da exit relay.
 
 ### Security metrics
 In generale tali metriche sono definite rispetto ad uno specifico tipo di avversario, sono usate per determinare la sicurezza (su tempi umani) e devono permettere la stima di probabilità per eventi rilevanti.
@@ -167,6 +170,69 @@ Per confronto si suppone che un avversario non controlli una guardia/exit fino a
 Nei restanti 4 mesi, l'avversario riesce a deanonimizzare l'utente nel 70% dei casi.
 Tale probabilità è simile a la probabilità di compromissione entro 4 mesi nel caso in cui controllasse i relay fin dall'inizio.
 
+
+
 # Network Attack
+A differenza di un relay adversary, un network adversary non controlla relay nella speranza che un client ne scelga uno; sfrutta la sua posizione di carrier del traffico per correlare il traffico che eventualmente attraverserà la sua infrastruttura
+
+##### Client Behavior
+Si considerano solo i modelli Typical, BitTorrent ed IRC
+
+Un caso particolare è quello di un client la cui comunicazione inizia e termina nella stessa AS. L'avversario può deanonimizzare tranquillamente, perciò tale caso è escluso dalle analisi.
+
+##### Client Location
+I client sono dislocati fra i 5 più popolari AS (4 tedeschi ed 1 italiano)
+
+
+### Network Adversaries
+Si considerano 3 tipi di network adversaries: AS, IXP e IXP organizations.
+
+Gli IXP sono punti in cui più AS si interconnettono, perciò controllare uno o più IXP garantisce una significativa abilità di deanonimizzare il traffico TOR.
+
+Una stessa organizzazione può controllare diversi IXP: 19 organizzazioni amministrano 90 IXP
+
+
+### Analisi
+Tutti gli stream generati da un client per una data posizione vengono aggregati e viene contato il numero di streams in cui un avversario esiste lungo il percorso (sia in ingresso che in uscita). Dopodichè viene selezionata l'entità che compromette il maggior numer odi streams.
+
+### AS adversary
+Contro un AS avversario, una compromissione entro un giorno ha probabilità 45.9% per Typical, 64.9% per IRC, e 76.4% per BitTorrent nel worst-case.
+
+Almeno una stream viene compromessa entro 3 mesi nel 98% dei casi.
+
+Nel best-case, gli utenti IRC sono compromessi entro 44 giorno (mediana); entro 90 giorni il 44% dei Typical e il 38% dei BitTorrent sono compromessi
+
+![[Schermata del 2024-05-25 11-02-20.png]]
+
+
+### IXP adversary
+Risultati simili ad un AS adversary per il worst case.
+
+Rappresentano una minaccia minore nel best case. Meno del 20% dei client usano una stream che può essere compromessa entro 3 mesi.
+
+Questa discrepanza è spiegata dal fatto che l'80% delle connessione non attraversa un IXP.
+
+![[Schermata del 2024-05-25 11-03-01.png]]
+
+Emerge come una organizzazione ha più potere rispetto ad un IXP singolo. Nei primi 30 giorno un IXP compromette il 3.7% dei samples, contro il 12.4% di una organizzazione.
+
+
+### Discussione
+A differenza del Relay Adversary, emerge che il comportamento degli utenti con poca diversità di destinazioni, comporta una maggiore probabilità di compromissione.
+
+Un singolo AS-adversary può compromettere il 50% dei client IRC entro 44 giorni, cifra simile a quella dei Typical user compromessi durante <u>tutto</u> il periodo.
+
+Questo è causato da semplice probabilità: man mano che l'inseme i destinazioni si restringe, è più probabile che il client scelga un percorso malevolo.
+
+Per aumentare la sicurezza quindi è bene che un utente diversifichi le proprie destinazioni.
+
+
+Emerge anche un picco iniziale di client compromessi, seguito da un declino del rate di compromissione.
+
+Questo perché se una guard compromessa è scelta, basta solo che un exit malevolo sia dall'altro lato del circuito.
+Tuttavia se questo non accade, non sarà possibile compromettere alcun circuito fino a quando non verranno scelte nuove guardie.
+
+
+Per quanto gli IXP abbiano una minore probabilità di compromettere il traffico, va notato come sia meno complesso eseguire una correlazione del traffico.,data la loro concentrazione geografica, a differenza dei più sparsi AS.
 
 # Sniper Attack
