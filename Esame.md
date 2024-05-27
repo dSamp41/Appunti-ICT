@@ -278,6 +278,63 @@ L'avversario deve controlla un singolo client malevolo. Il client costruisce un 
 
 Il client smetterà di leggere dalla connessione verso l'entry relay, ma invierà SENDME verso l'exit, per assicurarsi che la sua package window non venga azzerata, quindi che possa continuamente inviare pacchetti sul circuito.
 
-Questi pacchetti verranno bufferizzati nell'entry relay, consumandone la memoria fin quando il processo TOR non verrà terminato dall'OS.
+Questi pacchetti verranno conservati nel buffer dell'entry relay, consumandone la memoria fin quando il processo TOR non verrà terminato dall'OS.
 
 ![[Schermata del 2024-05-27 11-41-52.png]]
+
+
+
+TOR prevede che nel caso in cui un exit relay riceva un SENDME che faccia arrivare la sua finestra oltre le 1000 celle, questo invii un DESTROY cell al client.
+Ciò causa la chiusura del circuito.
+
+Per svolgere l'attacco, l'avversario deve assicurarsi di inviare SENDME ad un rate tale da non far sforare la finestra dell'exit.
+
+\* anche in caso ciò avvenga, non è un problema. Exit invia DESTROY a client che ha il compito di rimandarlo. Client == avversario => può non mandarlo
+
+### Parallelizzare l'attacco
+In caso il l'exit dovesse chiudere il circuito, ciò non causerà lo svuotamento del buffer dell'entry, ma non verranno aggiunti nuovi pacchetti all'obbiettivo.
+
+Ciò può accadere quando si fanno delle probe per determinare il rate a cui inviare i SENDME.
+
+Una soluzione per aumentare la resilienza dell'attacco alle chiusure di circuito è quello di usare multipli circuiti per dividere i compiti. Un circuito è addetto al probing, mentre l'altro è addetto ad inviare i SENDME
+
+
+### Nascondere l'attaccante 
+#### Con Tor
+Le versioni finora discusse sono catene del tipo 
+C<sub>A</sub> ↔ G<sub>V</sub> ↔ M ↔ E ↔ S, A: attaccante, V: vittima.
+
+Il problema è che G<sub>V</sub> conosce l'indirizzo IP dell'attaccante, ciò può essere usato per arrivare al colpevole in caso di comportamenti anomali.
+
+$E_{A} C_{A}$ ↔ $G_{V}$ ↔ M ↔ E ↔ S #anonima
+Tor stesso fornisce delle protezioni all'attacante: se l'attaccante possiede un exit relay, $G_{A}$ non è in grado di distinguere tra un attacco lanciato da $C_{A}$ o uno lanciato attraverso un circuito in cui $E_{A}$ funge da exit.
+
+Lo svantaggio è che $E_{A}$ deve funzionare come un exit onesto, con conseguente consumo di risorse. In ogni caso $G_{V}$ conosce questo IP e può essere un punto di partenza per le indagini.
+
+
+Una soluzione è quella in cui l'avversario usa un circuito TOR completo: 
+$C_{A}^{2} C_{A}^{1}$ <-> $G^{1}$ <-> $M^{1}$ <-> $E^{1}$ ↔ $G_{V}^{2}$ ↔ $M^{2}$ ↔ $E^{2}$ ↔ S
+Ciò garantisce un completo anonimato.
+L'indirizzo di A sarà conosciuto solo da $G^{1}$, ignaro dell'attacco.
+$C_{A}^{1}$ smetterà di leggere dalla connessione con $G1$, ma $C_{A}^{2}$ invierà SENDME ad $E2$ tramite $C_{A}^{1}$.
+Gli svantaggi di tale soluzione consistono ovviamente nell'aumento di latenza/tempo nel compiere l'attacco
+Inoltre un circuito con exit su Tor stesso può destare sospetti.
+
+
+#### Senza Tor
+L'attaccante può usare wifi pubblico, infrastrutture cloud, o una botnet.
+Ciò può aumentare il rischio di detection. I gestori cloud o wifi possono raccogliere log, e i bot possono essere parte di un honeypot.
+
+
+## Valutazione 
+I ricercatori hanno costruito un prototipo dell'attacco su una versione *privata* di Tor, per non compromettere la sicurezza della rete. La configurazione prevede 4 directory authorities, 400 relays, 500 file servers, 2800 clients. I clients generano traffico richiedendo il download di file dai server. 
+
+La versione dell'attacco implementata è quella efficiente+parallela, in 2 modalità: diretta ed anonima #anonima.
+
+Nella diretta ogni nodo si connette direttamente a Tor.
+In quella anonima ogni nodo esegue due istanze di client Tor.
+
+### Esperimento
+Si costruiscono 10 team, da 10 circuiti l'uno. Ogni circuito di probing scarica file da 50KiB, si pausa per 60s e ripete. Il nodo *sniper* è configurato con 100MiB/s di banda. Ogni run dura 60 minuti, i primi 30 di *bootstrap* della rete, i restanti di esecuzione dell'attacco. 
+
+Per ogni attacco si misura RAM usata da attaccante e vittima.
