@@ -1,8 +1,10 @@
 Links:
 https://tor.stackexchange.com/questions/423/what-are-good-explanations-for-relay-flags
+https://2019.www.torproject.org/about/overview.html.en
+https://2019.www.torproject.org/about/overview.html.en
 
 # Tor: introduzione
-La rete TOR è formata da circa 3000 relay. Un client Tor seleziona (almeno) 3 relay per formare un *circuito*, un insieme di stream TCP per comunicare con l'host destinatario.
+La rete TOR è formata da circa 8000 relay. Un client Tor seleziona (almeno) 3 relay per formare un *circuito*, un insieme di stream TCP per comunicare con l'host destinatario.
 
 TOR misura la larghezza di banda che ogni relay fornisce per assegnargli un peso. I pesi sono usati nella selezione per distribuire il carico verso relay con più banda disponibile.
 
@@ -16,7 +18,7 @@ La flag ==EXIT== è assegnata a quei relay che possono comunicare con host ester
 
 I client usano queste policy per determinare il relay da scegliere alla fine di un circuito.
 
-Tra le altre regole che un client *enforces*: non scegliere due relay con stesso prefisso di rete a 16 bit, o due relay appartenenti alla stessa famiglia (set of relays that mutually indicate that they belong to a group together)
+Tra le altre regole che un client *enforces*: non scegliere due relay con stesso prefisso di rete a 16 bit, o due relay appartenenti alla stessa famiglia (set of relays that mutually indicate that they belong to a group together). In generale fissato un circuito, questo viene usato per 10 minuti.
 
 # Adversary model and metrics
 ### Adversary model
@@ -90,7 +92,7 @@ Tuttavia essendo una simulazione, ogni costruzione di circuito ha successo. Non 
 
 
 # SECURITY ANALYSIS
-Si considerano due tipi di avversari: uno in grado di eseguire relay su TOR, un altro è un ISP in grado osservare porzioni di rete TOR.
+Si considerano due tipi di avversari: uno in grado di fornire/controllare relay su TOR, un altro è un ISP in grado osservare porzioni di rete TOR.
 
 
 # Relay Adversary
@@ -173,16 +175,20 @@ Tale probabilità è simile a la probabilità di compromissione entro 4 mesi nel
 
 
 # Network Attack
-A differenza di un relay adversary, un network adversary non controlla relay nella speranza che un client ne scelga uno; sfrutta la sua posizione di carrier del traffico per correlare il traffico che eventualmente attraverserà la sua infrastruttura
+A differenza di un relay adversary, un network adversary non controlla relay nella speranza che un client ne scelga uno; sfrutta la sua posizione di carrier del traffico per correlare il traffico che eventualmente attraverserà la sua infrastruttura fra guard ed exit relay di un circuito.
 
 ##### Client Behavior
 Si considerano solo i modelli Typical, BitTorrent ed IRC
 
-Un caso particolare è quello di un client la cui comunicazione inizia e termina nella stessa AS. L'avversario può deanonimizzare tranquillamente, perciò tale caso è escluso dalle analisi.
+Un caso particolare è quello di un client la cui comunicazione inizia e termina nella stessa AS => l'avversario può deanonimizzare l'intero traffico, 
+
+Dalla analisi quindi sono esclusi i casi in cui l'AS contiene il client o la destinazione di un dato client.
 
 ##### Client Location
 I client sono dislocati fra i 5 più popolari AS (4 tedeschi ed 1 italiano)
 
+### Metodologia
+Sono analizzati i percorsi client-guard per 5 volte, uno per ogni possibile locazione del client.
 
 ### Network Adversaries
 Si considerano 3 tipi di network adversaries: AS, IXP e IXP organizations.
@@ -193,7 +199,7 @@ Una stessa organizzazione può controllare diversi IXP: 19 organizzazioni ammini
 
 
 ### Analisi
-Tutti gli stream generati da un client per una data posizione vengono aggregati e viene contato il numero di streams in cui un avversario esiste lungo il percorso (sia in ingresso che in uscita). Dopodichè viene selezionata l'entità che compromette il maggior numer odi streams.
+Tutti gli stream generati da un client per una data posizione vengono aggregati e viene contato il numero di streams in cui un avversario esiste lungo il percorso (sia in ingresso che in uscita). Dopodichè viene selezionata l'entità che compromette il maggior numero di streams.
 
 ### AS adversary
 Contro un AS avversario, una compromissione entro un giorno ha probabilità 45.9% per Typical, 64.9% per IRC, e 76.4% per BitTorrent nel worst-case.
@@ -214,7 +220,7 @@ Questa discrepanza è spiegata dal fatto che l'80% delle connessione non attrave
 
 ![[Schermata del 2024-05-25 11-03-01.png]]
 
-Emerge come una organizzazione ha più potere rispetto ad un IXP singolo. Nei primi 30 giorno un IXP compromette il 3.7% dei samples, contro il 12.4% di una organizzazione.
+Emerge come una organizzazione ha più potere rispetto ad un IXP singolo. Nei primi 30 giorni un singolo IXP compromette il 3.7% dei samples, contro il 12.4% di una organizzazione.
 
 
 ### Discussione
@@ -235,4 +241,43 @@ Tuttavia se questo non accade, non sarà possibile compromettere alcun circuito 
 
 Per quanto gli IXP abbiano una minore probabilità di compromettere il traffico, va notato come sia meno complesso eseguire una correlazione del traffico.,data la loro concentrazione geografica, a differenza dei più sparsi AS.
 
+
+
 # Sniper Attack
+
+### Detour su protocollo TOR
+[cell == pacchetto TCP]
+I relay di un circuito usano TCP. 
+Ogni edge node (client, exit) ha una ==package window== inizializzata a 1000, decrementata per ogni cell inviata, ed una ==delivery windows== (inizializzata a 100), decrementata per ogni cell ricevuta.
+
+Il packaging edge di un circuito smetterà di inviare pacchetti quando la sua package windows raggiunge 0; il delivery edge invece invierà un segnale (SENDME) al PE quando una delivery window lungo il circuito raggiunge 0.
+
+SENDME spinge il PE ad aumentare la propria packaging window ed il DE ad aumentare la propria delivery window. 
+SENDME segnala la disponibilità a ricevere altri pacchetti. (ricarica il credit)
+
+### Attacco: versioni base
+L'attacco si basa su un fatto: un DE che smette di leggere, causa al prossimo nodo il riempimento del buffer con un pacchetto pari ad una package window completa (1000 cells).
+
+Il riempimento del buffer causerà la terminazione del processo Tor da parte dell'OS => relay fuori dalla rete TOR.
+
+![[Schermata del 2024-05-27 11-29-32.png]]
+
+
+
+
+### Attacco: versione efficiente
+Nella versione base è necessario che un avversario possa caricare/generare dati.
+Una versione efficiente elimina tale necessità: sfrutta i segnali di controllo di flusso offerto da TOR.
+
+Il segnale SENDME implica che il DE abbia ricevuto le cells, ma il DE può inviare tali segnali anche senza aver effettivamente ricevuto i dati.
+
+La versione efficiente combina l'invio di SENDME con il meccanismo di stop della lettura usato nelle versioni base.
+
+L'avversario deve controlla un singolo client malevolo. Il client costruisce un circuito selezionando l'obbiettivo come entry. Dopodichè inizia il download di alcuni file di grandi dimensioni (per assicurarsi che la package window dell'exit venga svuotata).
+
+
+Il client smetterà di leggere dalla connessione verso l'entry relay, ma invierà SENDME verso l'exit, per assicurarsi che la sua package window non venga azzerata, quindi che possa continuamente inviare pacchetti sul circuito.
+
+Questi pacchetti verranno bufferizzati nell'entry relay, consumandone la memoria fin quando il processo TOR non verrà terminato dall'OS.
+
+![[Schermata del 2024-05-27 11-41-52.png]]
