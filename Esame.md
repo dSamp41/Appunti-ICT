@@ -1,7 +1,6 @@
 Links:
 https://tor.stackexchange.com/questions/423/what-are-good-explanations-for-relay-flags
 https://2019.www.torproject.org/about/overview.html.en
-https://2019.www.torproject.org/about/overview.html.en
 
 # Tor: introduzione
 La rete TOR è formata da circa 8000 relay. Un client Tor seleziona (almeno) 3 relay per formare un *circuito*, un insieme di stream TCP per comunicare con l'host destinatario.
@@ -338,3 +337,76 @@ In quella anonima ogni nodo esegue due istanze di client Tor.
 Si costruiscono 10 team, da 10 circuiti l'uno. Ogni circuito di probing scarica file da 50KiB, si pausa per 60s e ripete. Il nodo *sniper* è configurato con 100MiB/s di banda. Ogni run dura 60 minuti, i primi 30 di *bootstrap* della rete, i restanti di esecuzione dell'attacco. 
 
 Per ogni attacco si misura RAM usata da attaccante e vittima.
+
+
+Il primo risultato che emerge è che nella versione anonima, l'attaccante consuma il doppio di memoria, dati che usa il doppio di istanze del client TOR.
+
+Il requisito massimo di memoria è inferiore ai 600 MiB, mentre per la banda si aggirano sui 56KiB/s in upload e 21 in download. Questo implica che un avversario può facilmente soddisfare tali requisiti. [probing less often can further reduce bandwidth costs].
+
+
+
+mean target memory consumption rate and mean sniper bandwidth consumption
+![[Schermata del 2024-05-28 10-12-59.png]]
+
+La mediana del rate di consumo di RAM del target è pari a 903 KiB/s per la versione diretta e 850 KiB/s in quella anonima. Risulta anche che la versione diretta è circa 1.4 volte più efficente di quella anonima. [circuiti più lunghi casua più latenza]
+
+Anche i requisiti di rete sono simili: the mean upstream bandwidth measured was 45.9 and 43.0 KiB/s in the median forthe direct and anonymous attacks, while the mean downstream
+bandwidth was respectively 13.6 and 17.6 KiB/s in the median.
+
+
+### Analisi
+L'avversario può scegliere obbiettivi con poca RAM ma alto peso: questi avranno più impatto su TOR dato l'algoritmo di selezione che favorisce relay con maggior bandwidth.
+
+Dato che le informazioni sulla memoria dei relay non sono pubbliche, si può supporre che un avversario scelga i propri obbiettivi sulla base del consensus weight.
+
+I primi 100 relay (per peso) vengono selezionati nel 40% delle selezioni, quindi un avversario che disabiliti un piccolo gruppo tra questi avrà un impatto significativo sulla rete.
+
+
+I ricercatori analizzano anche i tempi necessari a disabilitare alcuni gruppi di relay
+![[Schermata del 2024-05-28 10-25-54.png]]
+
+La guard ed exit più veloci, con 1 GiB di RAM possono essere disabilitate in un minuto nella versione diretta dell'attacco => si disabilita rispettivamente 1.7 e 3.2% dei circuiti TOR.
+
+Se tali relay avessero 8 GiB di RAM, potrebbero essere disabilitati in meno di 20 minuti in entrambe le modalità di attacco.
+
+Colpisce che disabilitare le top 20 exit richiede meno di 30 minuti se i relay hanno 1 GiB di RAM, (meno di 4 ore se hanno 8 GiB). Ciò causerebbe l fallimento del 35% di circuiti.
+
+Similmente, le 20 guard più veloci sarebbe disabilitate in 45 minuti se aventi 1 GiB di RAM, o 6 ore se con 8 GiB. 
+
+
+### Sniper Attack contro l'anonimato
+Un obbiettivo interessante per uno Sniper Attack consiste nelle entry guard di un utente. 
+Un avversario che controlla dei relay malevoli, intenzionato a far si che una vittima scelga i suoi affinchè possa correlare il traffico e deanonimizzarlo, potrà disabilitare le entry guard. Quando un client non trova guard funzionanti, ne selezionerà altre.
+
+La difficoltà di questo consiste nel individuare il gruppo di 3 entry guard dell'utente. 
+
+
+## Difese contro Sniper Attack
+Lo Sniper Attack sfrutta 2 vulnerabilità del design di TOR: mancanza di *enfocement* nel controllo di flusso, e code illimitate.
+
+#### Authenticated SENDMEs
+Un problema è che il PE non può verificare che il DE abbia effettivamente ricevuto le cells.
+Una soluzione può essere l'inserire una challenge ogni 100 cells. Tale challenge prevede che il DE invii l'hash di ogni cell ricevuta.
+
+Per evitare il pre-calcolo degli hash di un file già noto, un byte vuoto viene inserito casualmente, andando a modificare l'intero hash della cell.
+Se l'hash inviato non combacia con quello effettivo, la exit abbandona il circuito.
+
+Tale contromisura però non regge contro la versione parallela dell'attacco.
+
+
+#### Queue Length Limit
+Le code dei relay possono crescere senza limiti: una contromisura è limitare la quantità di memoria che ogni circuito può usare. Se si rileva un eccesso, il relay può assumere che un attacco sia in corso e distruggere il circuito. 
+
+Anche questa misura è suscettibile ad attacchi paralleli. La memoria consumata da più circuiti può comunque causare il crash del relay.
+
+
+### Adaptive Circuit Killing
+Per contrastare la versione parallela, questa tecnica prevede che un relay continui a chiudere circuiti quando l'occupazione di memoria totale resta sopra un certo limite.
+
+
+Il punto principale è la selezione dei circuiti da chiudere.
+- quello con coda più lunga => avversario crea tanti circuiti con code corte => consumo memoria resta elevato => altri circuiti veri verranno terminati
+
+Il criterio scelto è il tempo di arrivo della prima cella in coda. Il tempo di arrivo di una cella è un meccanismo già presente in Tor (per il calcolo dei ritardi), perciò non è difficile da riutilizzare.
+
+Questo criterio funziona perchè affinche i circuiti dell'attaccante non vengano chiusi, egli sarà costretto a refresharli con nuove celle. Ciò obbliga l'attaccante a dover leggere da tutti i suoi circuiti.
