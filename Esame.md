@@ -410,3 +410,20 @@ Il punto principale è la selezione dei circuiti da chiudere.
 Il criterio scelto è il tempo di arrivo della prima cella in coda. Il tempo di arrivo di una cella è un meccanismo già presente in Tor (per il calcolo dei ritardi), perciò non è difficile da riutilizzare.
 
 Questo criterio funziona perchè affinche i circuiti dell'attaccante non vengano chiusi, egli sarà costretto a refresharli con nuove celle. Ciò obbliga l'attaccante a dover leggere da tutti i suoi circuiti.
+
+### Proof
+Si consideri un relay con bandwidth $B$, usato da $n$ circuiti attivi (circuiti tc esiste una cells accodata). Se la outgoing bandwidth fosse assegnata in maniera fair, ogni circuiti avrebbe un outgoing data rate $r_{fair} = \frac{B}{n}$. Nella realtà non sarà così, per quanto sia Tor che TCP abbiano dei meccanismi che puntano alla fairness.
+
+Perciò si può definire un fairness factor $0 \lt \alpha \leq 1$ , per cui ogni circuiti attivi riceve una bandwidth $r \ge \alpha \frac{B}{n}$.
+
+Sia $Q$ la lunghezza delle code dei relay. Se la coda di un circuito non eccede $Q$, ed il suo mean rate è almeno $r$, allora il massimo tempo per cui una cella può restare accodata è $d_{max} = \frac{Q}{r} = \frac{Qn}{\alpha B}$.
+
+Se $t_{now}$ è l'istante attuale, le celle in cima alle code dei circuiti avranno un timestamp superiore a $t_{now} - d_{max}$. Per far si che un relay termini un circuito non-malevolo, l'attaccante deve assicurarsi che le prime celle della coda devono essere arrivate più tardi del timestamp  $t_{now} - d_{max}$.
+
+
+Sia $M$ la memoria libera di un relay. L'attaccante deve costruire code di $M$
+ bytes affinchè il relay inizi a terminare circuiti. Ciò implica che l'attaccante deve inserire $M$ bytes entro $d_{max}$, perciò ad un rate $r_{a} = \frac{M}{d_{max}} = \frac{M}{Q} \alpha \frac{B}{n} = \frac{M}{Q}r$
+
+Questo valore ha un fattore $M/Q$ rispetto al minimo outgoing rate. Data abbastanza memoria, questo fattore diventa arbitrariamente grande.  Per quanto possibile con abbastanza risorse, questo attaccato diventa praticamente irrealistico.
+
+![[Schermata del 2024-05-29 10-37-17.png]]
