@@ -50,7 +50,7 @@ Per questa analisi sono usate le seguenti metriche:
 - distribuzione di probabilità sul tempo fino al primo path compromesso.
 
 # Metodologia
-Per valutare la sicurezza di TOR rispetto ad averrsario e metriche proposte, si usa il metodo Monte Carlo per campionare il flusso di traffico sulla rete durante varie tipi di attività degli utenti.
+Per valutare la sicurezza di TOR rispetto ad avversario e metriche proposte, si usa il metodo Monte Carlo per campionare il flusso di traffico sulla rete durante varie tipi di attività degli utenti.
 
 Per ogni campione si usa un modello della rete, si simula il comportamento degli utenti e si simula il risultato.
 
@@ -108,7 +108,7 @@ La banda ha un costo, per cui arrivare a controllare una grossa parte di TOR è 
 ### Adversary Resource Allocation
 L'avversario deve determinare come allocare la sua banda per massimizzare la probabilità di compromettere circuiti.
 
-Dato che un realy non può essere scelto due volte nelllo stesso circuiti, deve controllare almeno 2 relay per eseguire una correlazione.
+Dato che un relay non può essere scelto due volte nello stesso circuito, deve controllare almeno 2 relay per eseguire una correlazione.
 
 Si suppone che l'avversario possieda un guard ed un exit relay con uscita verso ogni indirizzo e porta. Entrambi hanno abbastanza banda da ottenere la flag ==fast== 
 
@@ -149,9 +149,9 @@ Le exit sono scelte indipendentemente per ogni circuito, per cui la distribuzion
 ### Valutazioni
 Il modello BitTorrent crea 2.5 volte gli streams creati dal Typical, ed oltre 50 volte rispetto ad IRC. Inoltre fra le 171 porte usate, diverse sono rifiutate dalla exit policy default di TOR. 
 
-Questo permette ad un avversario di fornire una percentuale di banda maggiore: ciò si riflette in un temo mediano di exit compromise di meno di 6 ore, e un rate mediano del 12%.
+Questo permette ad un avversario di fornire una percentuale di banda maggiore: ciò si riflette in un tempo mediano di exit compromise di meno di 6 ore, e un rate mediano del 12%.
 
-Anche i modelli IRC e WorstPort soffrono di questo probelma dato che entrambi si connettono a porte poco "permesse".
+Anche i modelli IRC e WorstPort soffrono di questo problema dato che entrambi si connettono a porte poco "permesse".
 
 I modelli Typical e BestPort risultano i più sicuri: le porte 80 e 443 sono praticamente supportate da tutti gli exit relay.
 
@@ -166,7 +166,7 @@ Sperimentando con velocità tra 10-200 MiB/s emerge che raddoppiare la banda por
 
 ![[Schermata del 2024-05-24 15-10-23.png]]
 
-Per confronto si suppone che un avversario non controlli una guardia/exit fino al secondo mese di simulazione, quando l'utente ha già scelto e rotato le sue guardie.
+Per confronto si suppone che un avversario non controlli una guardia/exit fino al secondo mese di simulazione, quando l'utente ha già scelto e ruotato le sue guardie.
 
 Nei restanti 4 mesi, l'avversario riesce a deanonimizzare l'utente nel 70% dei casi.
 Tale probabilità è simile a la probabilità di compromissione entro 4 mesi nel caso in cui controllasse i relay fin dall'inizio.
@@ -227,7 +227,7 @@ A differenza del Relay Adversary, emerge che il comportamento degli utenti con p
 
 Un singolo AS-adversary può compromettere il 50% dei client IRC entro 44 giorni, cifra simile a quella dei Typical user compromessi durante <u>tutto</u> il periodo.
 
-Questo è causato da semplice probabilità: man mano che l'inseme i destinazioni si restringe, è più probabile che il client scelga un percorso malevolo.
+Questo è causato da semplice probabilità: man mano che l'insieme di destinazioni si restringe, è più probabile che il client scelga un percorso malevolo.
 
 Per aumentare la sicurezza quindi è bene che un utente diversifichi le proprie destinazioni.
 
@@ -272,7 +272,7 @@ Il segnale SENDME implica che il DE abbia ricevuto le cells, ma il DE può invia
 
 La versione efficiente combina l'invio di SENDME con il meccanismo di stop della lettura usato nelle versioni base.
 
-L'avversario deve controlla un singolo client malevolo. Il client costruisce un circuito selezionando l'obbiettivo come entry. Dopodichè inizia il download di alcuni file di grandi dimensioni (per assicurarsi che la package window dell'exit venga svuotata).
+L'avversario deve controllare un singolo client malevolo. Il client costruisce un circuito selezionando l'obbiettivo come entry. Dopodichè inizia il download di alcuni file di grandi dimensioni (per assicurarsi che la package window dell'exit venga svuotata).
 
 
 Il client smetterà di leggere dalla connessione verso l'entry relay, ma invierà SENDME verso l'exit, per assicurarsi che la sua package window non venga azzerata, quindi che possa continuamente inviare pacchetti sul circuito.
@@ -295,7 +295,7 @@ In caso il l'exit dovesse chiudere il circuito, ciò non causerà lo svuotamento
 
 Ciò può accadere quando si fanno delle probe per determinare il rate a cui inviare i SENDME.
 
-Una soluzione per aumentare la resilienza dell'attacco alle chiusure di circuito è quello di usare multipli circuiti per dividere i compiti. Un circuito è addetto al probing, mentre l'altro è addetto ad inviare i SENDME
+Una soluzione per aumentare la resilienza dell'attacco alle chiusure di circuito è quello di usare multipli circuiti per dividere i compiti. Un circuito è addetto al probing, mentre l'altro è addetto ad inviare i SENDME.
 
 
 ### Nascondere l'attaccante 
@@ -348,9 +348,9 @@ Il requisito massimo di memoria è inferiore ai 600 MiB, mentre per la banda si 
 mean target memory consumption rate and mean sniper bandwidth consumption
 ![[Schermata del 2024-05-28 10-12-59.png]]
 
-La mediana del rate di consumo di RAM del target è pari a 903 KiB/s per la versione diretta e 850 KiB/s in quella anonima. Risulta anche che la versione diretta è circa 1.4 volte più efficente di quella anonima. [circuiti più lunghi casua più latenza]
+La mediana del rate di consumo di RAM del target è pari a 903 KiB/s per la versione diretta e 850 KiB/s in quella anonima. Risulta anche che la versione diretta è circa 1.4 volte più efficiente di quella anonima. [circuiti più lunghi casua più latenza]
 
-Anche i requisiti di rete sono simili: the mean upstream bandwidth measured was 45.9 and 43.0 KiB/s in the median forthe direct and anonymous attacks, while the mean downstream
+Anche i requisiti di rete sono simili: the mean upstream bandwidth measured was 45.9 and 43.0 KiB/s in the median for the direct and anonymous attacks, while the mean downstream
 bandwidth was respectively 13.6 and 17.6 KiB/s in the median.
 
 
@@ -369,16 +369,16 @@ La guard ed exit più veloci, con 1 GiB di RAM possono essere disabilitate in un
 
 Se tali relay avessero 8 GiB di RAM, potrebbero essere disabilitati in meno di 20 minuti in entrambe le modalità di attacco.
 
-Colpisce che disabilitare le top 20 exit richiede meno di 30 minuti se i relay hanno 1 GiB di RAM, (meno di 4 ore se hanno 8 GiB). Ciò causerebbe l fallimento del 35% di circuiti.
+Colpisce che disabilitare le top 20 exit richiede meno di 30 minuti se i relay hanno 1 GiB di RAM, (meno di 4 ore se hanno 8 GiB). Ciò causerebbe il fallimento del 35% di circuiti.
 
-Similmente, le 20 guard più veloci sarebbe disabilitate in 45 minuti se aventi 1 GiB di RAM, o 6 ore se con 8 GiB. 
+Similmente, le 20 guard più veloci sarebbero disabilitate in 45 minuti se aventi 1 GiB di RAM, o 6 ore se con 8 GiB. 
 
 
 ### Sniper Attack contro l'anonimato
 Un obbiettivo interessante per uno Sniper Attack consiste nelle entry guard di un utente. 
 Un avversario che controlla dei relay malevoli, intenzionato a far si che una vittima scelga i suoi affinchè possa correlare il traffico e deanonimizzarlo, potrà disabilitare le entry guard. Quando un client non trova guard funzionanti, ne selezionerà altre.
 
-La difficoltà di questo consiste nel individuare il gruppo di 3 entry guard dell'utente. 
+La difficoltà di questo consiste nell'individuare il gruppo di 3 entry guard dell'utente. 
 
 
 ## Difese contro Sniper Attack
@@ -424,6 +424,6 @@ Se $t_{now}$ è l'istante attuale, le celle in cima alle code dei circuiti avran
 Sia $M$ la memoria libera di un relay. L'attaccante deve costruire code di $M$
  bytes affinchè il relay inizi a terminare circuiti. Ciò implica che l'attaccante deve inserire $M$ bytes entro $d_{max}$, perciò ad un rate $r_{a} = \frac{M}{d_{max}} = \frac{M}{Q} \alpha \frac{B}{n} = \frac{M}{Q}r$
 
-Questo valore ha un fattore $M/Q$ rispetto al minimo outgoing rate. Data abbastanza memoria, questo fattore diventa arbitrariamente grande.  Per quanto possibile con abbastanza risorse, questo attaccato diventa praticamente irrealistico.
+Questo valore ha un fattore $M/Q$ rispetto al minimo outgoing rate. Data abbastanza memoria, questo fattore diventa arbitrariamente grande.  Per quanto possibile con abbastanza risorse, questo attacco diventa praticamente irrealistico.
 
 ![[Schermata del 2024-05-29 10-37-17.png]]
